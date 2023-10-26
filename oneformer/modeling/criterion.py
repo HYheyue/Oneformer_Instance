@@ -23,6 +23,7 @@ from ..utils import box_ops
 import torch.distributed as dist
 import diffdist.functional as diff_dist
 import numpy as np
+import copy
 
 def dist_collect(x):
     """ collect all tensor from all GPUs
@@ -51,18 +52,29 @@ def dice_loss(
                 (0 for the negative class and 1 for the positive class).
     """
     inputs = inputs.sigmoid()
+    # print('inputs###', inputs.shape, inputs.max())
+    # print('targets###', targets.shape, targets.max())
+    # for i in range(inputs.shape[0]):
+    #     num_gt = torch.count_nonzero(targets[i])
+    #     num_pred = torch.count_nonzero(inputs[i])
+    #     current = (inputs[i] * targets[i]).sum(-1)
+    #     print('num target###', num_gt, num_pred, current, '---')
     inputs = inputs.flatten(1)
     numerator = 2 * (inputs * targets).sum(-1)
     denominator = inputs.sum(-1) + targets.sum(-1)
+    if denominator.shape[0] > 5:
+        weight = 2
+    else:
+        weight = 1
     loss = 1 - (numerator + 1) / (denominator + 1)
-    return loss.sum() / num_masks
+    return weight * loss.sum() / num_masks
 
 
 dice_loss_jit = torch.jit.script(
     dice_loss
 )  # type: torch.jit.ScriptModule
 
-
+ 
 def sigmoid_ce_loss(
         inputs: torch.Tensor,
         targets: torch.Tensor,
@@ -79,7 +91,21 @@ def sigmoid_ce_loss(
         Loss tensor
     """
     loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
-    loss = loss.mean(1)
+    use_ohem = False
+    if use_ohem:
+        n_min = 10000
+        thresh = 0.7 
+        if loss.shape[0] > 0:
+            loss_view = loss.view(-1)[:]
+            if loss_view[n_min] > thresh:
+                loss_ohem = loss_view[loss_view>thresh]
+            else:
+                loss_ohem = loss_view[:n_min]
+            loss = loss.mean(1) + torch.mean(loss_ohem)
+        else:
+            loss = loss.mean(1)
+    else:
+        loss = loss.mean(1)
     return loss.sum() / num_masks
 
 
@@ -220,8 +246,7 @@ class SetCriterion(nn.Module):
         # No need to upsample predictions as we are using normalized coordinates :)
         # N x 1 x H x W
         src_masks = src_masks[:, None]
-        target_masks = target_masks[:, None]
-
+        target_masks = target_masks[:, None] # 1, 1024, 1024
         with torch.no_grad():
             # sample point_coords
             point_coords = get_uncertain_point_coords_with_randomness(
