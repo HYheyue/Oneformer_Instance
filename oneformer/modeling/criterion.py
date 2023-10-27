@@ -52,13 +52,6 @@ def dice_loss(
                 (0 for the negative class and 1 for the positive class).
     """
     inputs = inputs.sigmoid()
-    # print('inputs###', inputs.shape, inputs.max())
-    # print('targets###', targets.shape, targets.max())
-    # for i in range(inputs.shape[0]):
-    #     num_gt = torch.count_nonzero(targets[i])
-    #     num_pred = torch.count_nonzero(inputs[i])
-    #     current = (inputs[i] * targets[i]).sum(-1)
-    #     print('num target###', num_gt, num_pred, current, '---')
     inputs = inputs.flatten(1)
     numerator = 2 * (inputs * targets).sum(-1)
     denominator = inputs.sum(-1) + targets.sum(-1)
