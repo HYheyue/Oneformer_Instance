@@ -9,13 +9,15 @@
 
 ## **Step 3: Optimization for Performance**
 ### A: Configuration
-Utilize the configuration file at "configs/basketball/oneformer_dinat_large_test_a100_size.yaml," which supports large input size suitable for basketball dataset.
+Utilize the configuration file at "configs/basketball/oneformer_dinat_large_test_a100_size.yaml," which supports large input size and iterations suitable for basketball dataset.
 
 ### B: Memory
-Large input size impose restrictions on batch size, hence, we employ act_checkpoint to double the batch size as in "oneformer/modeling/backbone/dinat.py".
+Large input size impose restrictions on batch size, hence, we employ act_checkpoint strategy to double the batch size as in "oneformer/modeling/backbone/dinat.py" line 184-185. 
+
+Activation checkpointing is a technique used to reduce GPU memory usage during training. This is done by avoiding the need to store intermediate activation tensors during the forward pass. Instead, the forward pass is recomputed by keeping track of the original input during the backward pass.
 
 ### C: Loss
-As the "Occlusion Metric" only accounts for instances that are split into several small regions, we have modified the dice_loss in "oneformer/modeling/criterion.py" by adding weights when the ground truth contains more than 5.
+As the "Occlusion Metric" only accounts for instances that are split into several small regions, we have modified the dice_loss in "oneformer/modeling/criterion.py" line 58-62 by adding weights when the ground truth contains more than 5.
 
 ### D: Crop
 Due to a significant amount of background in the images, we crop 200 pixels in height during the inference stage, considering the relationship between foreground and background in the training and validation data.
