@@ -5,7 +5,7 @@
 - [CHALLENGE Project](https://eval.ai/web/challenges/challenge-page/2070/overview)
 - [CHALLENGE GitHub](https://github.com/DeepSportradar/instance-segmentation-challenge)
 
-## **Step 2: Process Data to Coco Panoptic Format Following ONEFORMER**
+## **Step 2: Process Data to COCO Panoptic Format Following ONEFORMER**
 
 ## **Step 3: Optimization for Performance**
 ### A: Configuration
