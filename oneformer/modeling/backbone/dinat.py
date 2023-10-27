@@ -12,7 +12,7 @@ from timm.models.layers import DropPath
 from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
 
 from natten import NeighborhoodAttention2D as NeighborhoodAttention
-
+from fairscale.nn.checkpoint import checkpoint_wrapper
 
 class ConvTokenizer(nn.Module):
     def __init__(self, in_chans=3, embed_dim=96, norm_layer=None):
@@ -154,6 +154,7 @@ class DiNAT(nn.Module):
                  norm_layer=nn.LayerNorm,
                  frozen_stages=-1,
                  layer_scale=None,
+                 use_act_checkpoint=True,
                  **kwargs):
         super().__init__()
         self.num_levels = len(depths)
@@ -180,6 +181,8 @@ class DiNAT(nn.Module):
                              norm_layer=norm_layer,
                              downsample=(i < self.num_levels - 1),
                              layer_scale=layer_scale)
+            if use_act_checkpoint:
+                level = checkpoint_wrapper(level)
             self.levels.append(level)
 
         # add a norm layer for each output
